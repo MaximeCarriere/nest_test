@@ -130,4 +130,31 @@ Install Felix module:
 make install
 ```
 
-🎉 **Congratulations! You have successfully installed NEST Simulator and the Felix Module!**
+---
+
+## ✅ **Final Checks**
+
+1. **Verify NEST Installation:**
+   ```bash
+   nest --version
+   ```
+2. **Test Felix Module:**
+   ```python
+   import nest
+   nest.Install('felixmodule')
+   ```
+
+---
+
+## 🌟 **Running a Simulation**
+
+To run a simulation, navigate to the correct directory and execute the Python script:
+
+```bash
+cd ~/nest_test/training_action_object_refracto
+python main.py
+```
+
+🚀 **You're now ready to use NEST and Felix Module!**
+
+
