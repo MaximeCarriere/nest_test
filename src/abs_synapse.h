@@ -281,7 +281,7 @@ abs_synapse< targetidentifierT >::send( nest::Event& e, size_t t, const ABSCommo
   assert( target );
   assert( get_delay_steps() == 2 );
   //assert( get_delay_steps() == 1 );
-  //assert( (get_delay_steps() == 2) || (get_delay_steps() == 1) ); // orig. assert( get_delay_steps() == 2 )
+  //assert( (get_delay_steps() == 1) || (get_delay_steps() == 2)|| (get_delay_steps() == 3)); // orig. assert( get_delay_steps() == 2 )
   const double om_E = std::abs( e.get_offset() );
   const double V_m = target->get_V_m();
 
@@ -318,7 +318,7 @@ abs_synapse< targetidentifierT >::send( nest::Event& e, size_t t, const ABSCommo
     {
         if (om_E > cp.theta_pre)  // Is there sufficient pre-synaptic activity?
         {
-            if (weight_ < 0.12)  // Has the synaptic weight reached its maximum?
+            if (weight_ < 0.225)  // Has the synaptic weight reached its maximum?
             {
                 //std::cout << "LTP applied: Weight increased to " << weight_ << std::endl;  // Print LTP event
                 weight_ += cp.Delta;  // No: Homosynaptic LTP

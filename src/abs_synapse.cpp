@@ -48,8 +48,8 @@ ABSCommonProperties::ABSCommonProperties()
   : CommonSynapseProperties()
   , theta_pre (0.05)   // theta_pre( 0.05 )
   , theta_plus(0.15) // theta_plus( 0.15 )
-  , theta_minus(0.14) //theta_minus( 0.10 )
-  , Delta(0.0008) //Delta( 0.0008 )
+  , theta_minus(0.11) //theta_minus( 0.10 )
+  , Delta(0.0006) //Delta( 0.0008 )
 {
 }
 

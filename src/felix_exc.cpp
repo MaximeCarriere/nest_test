@@ -258,7 +258,6 @@ felixmodule::felix_exc::update( Time const& slice_origin, const long from_step, 
 
 
     S_.I_noise = 1 * P_.k_2 * ( V_.uni_dist( get_vp_specific_rng( get_thread() ) ) - 0.5 );
-    std::cout << "S_.I_noise: " << S_.I_noise << "\n";
     S_.I_tot = P_.k_1 * ( S_.I_exc * P_.Jexcitatory + S_.I_inh  + S_.I_noise + P_.I_e );
     S_.V_m = V_.P_V * S_.V_m + V_.P_V_input * S_.I_tot;
 
@@ -298,7 +297,7 @@ felixmodule::felix_exc::handle( SpikeEvent& e )
   {
     assert( e.get_delay_steps() == 2 );
     //assert( (e.get_delay_steps() == 2) || (e.get_delay_steps() == 1) );
-    //assert( (e.get_delay_steps() == 2) | (e.get_delay_steps() == 1) ); // original: 2!!!
+    //assert( (e.get_delay_steps() == 1) || (e.get_delay_steps() == 2) || (e.get_delay_steps() == 3)); // original: 2!!!
     assert( e.get_multiplicity() == 1 );
     if ( e.get_offset() > 0 )
     {
@@ -319,7 +318,7 @@ felixmodule::felix_exc::handle( SpikeEvent& e )
   else if ( rport == 3 )
   {
     //assert( e.get_delay_steps() == 1 );
-    assert( (e.get_delay_steps() == 2) || (e.get_delay_steps() == 1) );
+    assert( (e.get_delay_steps() == 1) || (e.get_delay_steps() == 2) );
     B_.exc_spikes.add_value(
         e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), e.get_weight() );
 
