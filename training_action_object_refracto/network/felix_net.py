@@ -2,6 +2,8 @@ import nest
 import random
 import numpy as np
 import pandas as pd
+from collections import defaultdict
+from tqdm import tqdm  # For a nice progress bar
 import pickle
 from .area import Area
 from config import between_min, between_max
@@ -59,118 +61,118 @@ class FelixNet:
         for area in self.areas.values():
             area.stimulation_off()
             
+
+
+
+
+
     def connect_areas(self):
         """
-        Create inter-area connections.
+        Create inter-area connections and print a structured connectivity summary with actual connection counts.
         """
 
-        # As all connections are symmetric, we only specify them once as source-target pair
-        # and then add the opposite connections afterwards automatically.
+        # Store connection counts
+        connection_counts = defaultdict(int)
+
         connectome = [
             # Visual System
-            ('V1', 'TO'),
-            ('V1', 'AT'),
-            ('TO', 'AT'),
+            ('V1', 'TO'), ('V1', 'AT'), ('TO', 'AT'),
             # Motor System
-            ('PF_L', 'PM_L'),
-            ('PF_L', 'M1_L'),
-            ('PM_L', 'M1_L'),
+            ('PF_L', 'PM_L'), ('PF_L', 'M1_L'), ('PM_L', 'M1_L'),
             # Auditory System
-            ('A1', 'AB'),
-            ('A1', 'PB'),
-            ('AB', 'PB'),
+            ('A1', 'AB'), ('A1', 'PB'), ('AB', 'PB'),
             # Articulatory System
-            ('PF_i', 'PM_i'),
-            ('PF_i', 'M1_i'),
-            ('PM_i', 'M1_i'),
+            ('PF_i', 'PM_i'), ('PF_i', 'M1_i'), ('PM_i', 'M1_i'),
             # Cross system next-neighbour
-            ('AT', 'PF_L'),
-            ('AT', 'PB'),
-            ('AT', 'PF_i'),
-            ('PF_L', 'PB'),
-            ('PF_L', 'PF_i'),
-            ('PB', 'PF_i'),
+            ('AT', 'PF_L'), ('AT', 'PB'), ('AT', 'PF_i'),
+            ('PF_L', 'PB'), ('PF_L', 'PF_i'), ('PB', 'PF_i'),
             # Cross system jumping links
-            ('TO', 'PF_L'),
-            ('AT', 'PM_L'),
-            ('AB', 'PF_i'),
-            ('PB', 'PM_i'),
-
+            ('TO', 'PF_L'), ('AT', 'PM_L'), ('AB', 'PF_i'), ('PB', 'PM_i')
         ]
 
-
         cross_system = [
-            ('AT', 'PF_L'),
-            ('AT', 'PB'),
-            ('AT', 'PF_i'),
-            ('PF_L', 'PB'),
-            ('PF_L', 'PF_i'),
-            ('PB', 'PF_i'),
-            # Cross system jumping links
-            ('TO', 'PF_L'),
-            ('AT', 'PM_L'),
-            ('AB', 'PF_i'),
-            ('PB', 'PM_i')]
+            ('AT', 'PF_L'), ('AT', 'PB'), ('AT', 'PF_i'),
+            ('PF_L', 'PB'), ('PF_L', 'PF_i'), ('PB', 'PF_i'),
+            ('TO', 'PF_L'), ('AT', 'PM_L'), ('AB', 'PF_i'), ('PB', 'PM_i')
+        ]
 
         within_system = [
-            ('V1', 'TO'),
-            ('V1', 'AT'),
-            ('TO', 'AT'),
-            ('PF_L', 'PM_L'),
-            ('PF_L', 'M1_L'),
-            ('PM_L', 'M1_L'),
-            ('A1', 'AB'),
-            ('A1', 'PB'),
-            ('AB', 'PB'),
-            ('PF_i', 'PM_i'),
-            ('PF_i', 'M1_i'),
-            ('PM_i', 'M1_i')]
-            
+            ('V1', 'TO'), ('V1', 'AT'), ('TO', 'AT'),
+            ('PF_L', 'PM_L'), ('PF_L', 'M1_L'), ('PM_L', 'M1_L'),
+            ('A1', 'AB'), ('A1', 'PB'), ('AB', 'PB'),
+            ('PF_i', 'PM_i'), ('PF_i', 'M1_i'), ('PM_i', 'M1_i')
+        ]
 
-        # if you do not want reciprocal area you should comment the next line
-        cross_system.extend(list((tgt, src) for src, tgt in cross_system))
+        # If you do not want reciprocal connections, comment the next two lines
+        cross_system.extend([(tgt, src) for src, tgt in cross_system])
+        within_system.extend([(tgt, src) for src, tgt in within_system])
 
-        kc_cross = 0.13*0.5
-
-        # Now create connections
-        for src, tgt in cross_system:
-            nest.Connect(self.areas[src].exc, self.areas[tgt].exc,
-                        {'rule': 'pairwise_bernoulli',
-                        'p': kc_cross* nest.spatial_distributions.gaussian2D(nest.spatial.distance.x,
-                        #'p': 0.15* nest.spatial_distributions.gaussian2D(nest.spatial.distance.x,
-                        nest.spatial.distance.y,
-                        std_x=9,
-                         std_y=9,
-                         mean_x = 0,
-                         mean_y= 0,
-                         rho =0
-                             ),
-                          'mask': {'grid': {'shape': [19, 19]}, 'anchor': [9, 9]}},
-                         {'synapse_model': 'abs_synapse', 'receptor_type': 1,
-                         'weight': nest.random.uniform(between_min, between_max), 'delay': 1}) # orig 'weight': nest.random.uniform(0, 0.1)
-
-
-                        # if you do not want reciprocal area you should comment the next line
-        within_system.extend(list((tgt, src) for src, tgt in within_system))
-
+        kc_cross = 0.13 * 0.5
         kc_within = 0.13
 
-        # Now create connections
-        for src, tgt in within_system:
+        print("\n🔗 **Creating Inter-Area Connections...**")
+
+        # **Cross-System Connections**
+        print("\n🌐 **Cross-System Connections:**")
+        for src, tgt in tqdm(cross_system, desc="Connecting Cross-System Areas"):
             nest.Connect(self.areas[src].exc, self.areas[tgt].exc,
-                        {'rule': 'pairwise_bernoulli',
-                        'p':   kc_within* nest.spatial_distributions.gaussian2D(nest.spatial.distance.x,
-                        nest.spatial.distance.y,
-                        std_x=9,
-                         std_y=9,
-                         mean_x = 0,
-                         mean_y= 0,
-                         rho =0
-                             ),
+                         {'rule': 'pairwise_bernoulli',
+                          'p': kc_cross * nest.spatial_distributions.gaussian2D(nest.spatial.distance.x,
+                                                                                nest.spatial.distance.y,
+                                                                                std_x=9, std_y=9, mean_x=0,
+                                                                                mean_y=0, rho=0),
                           'mask': {'grid': {'shape': [19, 19]}, 'anchor': [9, 9]}},
                          {'synapse_model': 'abs_synapse', 'receptor_type': 1,
-                         'weight': nest.random.uniform(between_min, between_max), 'delay': 1}) # orig 'weight': nest.random.uniform(0, 0.1)
+                          'weight': nest.random.uniform(between_min, between_max), 'delay': 1})
 
+        # **Within-System Connections**
+        print("\n🏠 **Within-System Connections:**")
+        for src, tgt in tqdm(within_system, desc="Connecting Within-System Areas"):
+            nest.Connect(self.areas[src].exc, self.areas[tgt].exc,
+                         {'rule': 'pairwise_bernoulli',
+                          'p': kc_within * nest.spatial_distributions.gaussian2D(nest.spatial.distance.x,
+                                                                                 nest.spatial.distance.y,
+                                                                                 std_x=9, std_y=9, mean_x=0,
+                                                                                 mean_y=0, rho=0),
+                          'mask': {'grid': {'shape': [19, 19]}, 'anchor': [9, 9]}},
+                         {'synapse_model': 'abs_synapse', 'receptor_type': 1,
+                          'weight': nest.random.uniform(between_min, between_max), 'delay': 1})
+
+        # **Retrieve and Count Connections**
+        print("\n📊 **Retrieving Connection Data...**")
+        network_weights = nest.GetConnections().get(
+            ("source", "target", "weight"), output="pandas"
+        )
+
+        # Compute actual number of connections per area pair
+        for (src, tgt) in cross_system + within_system:
+            try:
+                # ✅ Dynamically fetch excitatory neurons for each area
+                n_area1 = self.areas[src].exc.get(output="pandas")
+                n_area2 = self.areas[tgt].exc.get(output="pandas")
+
+                # ✅ Filter weight data to count connections from src to tgt
+                weight_data = network_weights[
+                    (network_weights["source"].isin(n_area1.index)) &
+                    (network_weights["target"].isin(n_area2.index))
+                ]
+
+                connection_counts[(src, tgt)] = len(weight_data)
+
+            except KeyError as e:
+                print(f"⚠️ Warning: Could not fetch data for {src} → {tgt}: {e}")
+
+        # **Summary of Connections**
+        print("\n📋 **Summary of Connections**")
+        print("══════════════════════════════════════════════════")
+        print(f"{'Source Area':<10} → {'Target Area':<10} | {'# Connections':<10}")
+        print("══════════════════════════════════════════════════")
+
+        for (src, tgt), count in connection_counts.items():
+            print(f"{src:<10} → {tgt:<10} | {count:<10}")
+
+        print("══════════════════════════════════════════════════")
+        print("✅ **All Connections Established Successfully!**\n")
 
 
         
@@ -191,19 +193,49 @@ class FelixNet:
             nest.Connect(self.vm, area.exc)
 
 
+
     def store(self, filename, motor, visu, audi, arti):
         """
-        Store neuron membrane potential and synaptic weights to a file.
+        Store neuron membrane potential and synaptic weights to given file with a progress bar.
         """
-
+        print("\n💾 SAVING NETWORK ==> ", filename)
         assert nest.NumProcesses() == 1, "Cannot dump MPI parallel"
 
-        ## Store excitatory, inhibitory, and global inhibition values
+        ## 🟢 Inhibitory Parameters
+        print("\n🔹 Extracting Inhibitory Parameters...")
+        inh_neurons_param_list = ["k_1", "tau_m"]
+        list_param_value_inh = []
+        for param in tqdm(inh_neurons_param_list, desc="Processing Inhibitory Parameters"):
+            value = list(set(self.areas['A1'].inh.get([param], output="pandas")[param].values.tolist()))
+            list_param_value_inh.append([param, value])
+        list_param_value_inh = pd.DataFrame(list_param_value_inh, columns=["param", "value"])
+
+        ## 🟢 Excitatory Parameters
+        print("\n🔹 Extracting Excitatory Parameters...")
+        exc_neurons_param_list = ["om", "alpha", "alpha_e", "tau_adapt", "k_2", "Jexcitatory", "tau_m"]
+        list_param_value = []
+        for param in tqdm(exc_neurons_param_list, desc="Processing Excitatory Parameters"):
+            value = list(set(self.areas['A1'].exc.get([param], output="pandas")[param].values.tolist()))
+            list_param_value.append([param, value])
+        list_param_value = pd.DataFrame(list_param_value, columns=["param", "value"])
+
+        ## 🟢 Global Inhibition Parameters
+        print("\n🔹 Extracting Global Inhibition Parameters...")
+        glob_neurons_param_list = ["k_1", "tau_m"]
+        list_param_value_glob = []
+        for param in tqdm(glob_neurons_param_list, desc="Processing Global Inhibition Parameters"):
+            value = list(set(self.areas['A1'].glob.get([param], output="pandas")[param].values.tolist()))
+            list_param_value_glob.append([param, value])
+        list_param_value_glob = pd.DataFrame(list_param_value_glob, columns=["param", "value"])
+
+        ## 🟢 Store Neurons Data
+        print("\n🔹 Extracting Neuron Data...")
+
         excitatory_neurons = []
         inhibitory_neurons = []
         global_inhibition = []
 
-        for area in self.areas.keys():
+        for area in tqdm(self.areas.keys(), desc="Processing Areas"):
             eph = self.areas[area].exc.get(output="pandas")
             eph["area"] = area
             excitatory_neurons.append(eph)
@@ -220,13 +252,18 @@ class FelixNet:
         inhibitory_neurons = pd.concat(inhibitory_neurons)
         global_inhibition = pd.concat(global_inhibition)
 
-        ## Store all synaptic weights
-        weights = nest.GetConnections().get(
+        ## 🟢 Store Synaptic Weights
+        print("\n🔹 Extracting Synaptic Weights...")
+        test = nest.GetConnections().get(
             ("delay", "receptor", "source", "synapse_model", "target", "weight"), output="pandas"
         )
 
+        ## 🟢 Save Network Data
         network = {
-            "weights": weights,
+            "param_excitatory": list_param_value,
+            "param_inhibitory": list_param_value_inh,
+            "param_global": list_param_value_glob,
+            "weight": test,
             "pattern_motor": motor,
             "pattern_visual": visu,
             "pattern_auditory": audi,
@@ -237,19 +274,22 @@ class FelixNet:
         }
 
         directory = "./save_network/"
-        print("SAVING NETWORK ==> ", filename)
         ensure_directory_exists(directory)
 
         with open(directory + filename, "wb") as f:
             pickle.dump(network, f, pickle.HIGHEST_PROTOCOL)
 
+        print("✅ Saving Complete!")
+
+
+
     def train_action_object(self, motor, visu, audi, arti, num_reps=10, t_on=16, t_off=30, stim_specs=None, nb_pattern=2, stim_strength=500):
     
-        ensure_directory_exists("./plot_weight")
         ensure_directory_exists("./save_network")
+        ensure_directory_exists("./processing_data")
 
 
-        nest.SetKernelStatus({'overwrite_files': True})
+        nest.SetKernelStatus({'overwrite_files': True, 'data_path': "./processing_data"})
         patt_no = 0
         self.store("network_0", motor, visu, audi, arti)
         gi_tot = []
@@ -290,7 +330,7 @@ class FelixNet:
 
                 # Save progress every 30 presentations
                 if np.sum(patt_no_count) % 5 == 0: ## NEED TO CHANGE FIRST 0 TO 30
-                    dat = dat_from_file('felix-*.dat')
+                    dat = dat_from_file('./processing_data/felix-*.dat')
                     dat['sum'] = dat['matrix'].apply(sum_arrays)
                     dat["Pres"] = patt_no_count[patt_no]
                     dat["patt_no"] = patt_no

@@ -9,7 +9,7 @@ else:
     print("Felix Module is already installed, skipping installation.")
 
 from network.felix_net import FelixNet  # Import AFTER loading felixmodule
-from utils.file_operations import create_act_obj_pattern
+from utils.file_operations import create_act_obj_pattern, ensure_directory_exists, show_owerlapp_pattern
 from config import TOTAL_TRAINING, NB_PATTERN, SIZE_PATTERN, SEED, stim_strength
 
 
@@ -19,6 +19,7 @@ if __name__ == "__main__":
     f.build_net()
     toc = time.time()
     
+    ensure_directory_exists("./plot_training")
     print(f"Build Time: {toc-tic:.1f} s")
 
     motor, visu, audi, arti = create_act_obj_pattern(NB_PATTERN, SIZE_PATTERN, SEED)

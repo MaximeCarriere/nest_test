@@ -282,7 +282,7 @@ def save_plot_activation(f, pres, dat):
     plt.xlim([to_plot["time"].min(), to_plot["time"].min()+30])
     plt.title("Non - Stimulated Areas")
 
-    plt.savefig('./plot_weight/plot_activation_'+str(pres)+'.png') 
+    plt.savefig('./plot_training/plot_activation_'+str(pres)+'.png')
     plt.close()
 
 
@@ -316,7 +316,7 @@ def save_plot_activation_new(pres, dat, patt_no):
         plt.xlim([to_plot["time"].min(), to_plot["time"].min() + 30])
     
     plt.suptitle("Patt_no: " + str(patt_no) + '   NB Pres: ' + str(pres))
-    plt.savefig('./plot_weight/plot_activation_0.png')
+    plt.savefig('./plot_training/plot_activation_0.png')
     
     plt.clf()  # Clear the current figure
     plt.cla()  # Clear the current axes
@@ -489,64 +489,31 @@ def stim_specs_pre_new(f,  stim_strength):
     return stim_specs
 
 
-#
-#def create_act_obj_pattern(nb_pattern):
-#    motor = []
-#    visu = []
-#    audi = []
-#    arti = []
-#    for i in range(0, nb_pattern):
-#        motor.append(f.neurons2IDs(sorted(random.sample(list(range(0,625)),19))))
-#        visu.append(f.neurons2IDs(sorted(random.sample(list(range(0,625)),19))))
-#        audi.append(f.neurons2IDs(sorted(random.sample(list(range(0,625)),19))))
-#        arti.append(f.neurons2IDs(sorted(random.sample(list(range(0,625)),19))))
-#
-#
-#    return motor, visu, audi, arti
-    
-    
-def create_act_obj_pattern(nb_pattern):
 
-    print("#################")
-    print("CREATING PATTERN")
-    print("#################")
+def ensure_directory_exists(directory):
+    """
+    Ensure that the given directory exists. If it doesn't, create it.
 
-    motor = []
-    visu = []
-    audi = []
-    arti = []
-    neuron_pool_motor = set(range(0, 625))
-    neuron_pool_visu = set(range(0, 625))
-    neuron_pool_audi = set(range(0, 625))
-    neuron_pool_arti = set(range(0, 625))
-
-    for i in range(0, nb_pattern):
-        motor.append(f.neurons2IDs(sorted(random.sample(list(neuron_pool_motor), 19))))
-        visu.append(f.neurons2IDs(sorted(random.sample(list(neuron_pool_visu), 19))))
-        audi.append(f.neurons2IDs(sorted(random.sample(list(neuron_pool_audi), 19))))
-        arti.append(f.neurons2IDs(sorted(random.sample(list(neuron_pool_arti), 19))))
-
-      
-        
-        neuron_pool_motor -= set(motor[-1])
-        neuron_pool_visu -= set(visu[-1])
-        neuron_pool_audi -= set(audi[-1])
-        neuron_pool_arti -= set(arti[-1])
+    Args:
+    - directory: The directory path to ensure exists.
+    """
+    if not os.path.exists(directory):
+        try:
+            os.makedirs(directory)
+            print(f"Directory '{directory}' created successfully.")
+        except OSError as e:
+            print(f"Error: Failed to create directory '{directory}': {e}")
+    else:
+        print(f"Directory '{directory}' already exists.")
         
         
-    show_owerlapp_pattern(motor, visu, audi, arti)
-    return motor, visu, audi, arti
-    
-    
-    
-    
 def show_owerlapp_pattern(motor, visu, audi, arti):
 
     print("#################")
     print("CHECKING OVERLAPP")
     print("#################")
 
-    ensure_directory_exists("./pattern_overlapp")
+    ensure_directory_exists("./plot_training")
     # Sample data (replace with your actual list of lists)
     s = {'Visual': visu, 'Motor': motor, 'Auditory': audi, 'Articulatory': arti}
     
@@ -578,26 +545,52 @@ def show_owerlapp_pattern(motor, visu, audi, arti):
     
 
 
-    plt.savefig('./pattern_overlapp/heatmap_matrix.png')
+    plt.savefig('./plot_training/heatmap_matrix.png')
     plt.close()
 
 
 
 
-def ensure_directory_exists(directory):
-    """
-    Ensure that the given directory exists. If it doesn't, create it.
+def create_act_obj_pattern(nb_pattern, size_pattern, seed=42):
+    print("#################")
+    print("CREATING PATTERN:")
+    print("seed: "+str(seed))
+    print("#################")
 
-    Args:
-    - directory: The directory path to ensure exists.
-    """
-    if not os.path.exists(directory):
-        try:
-            os.makedirs(directory)
-            print(f"Directory '{directory}' created successfully.")
-        except OSError as e:
-            print(f"Error: Failed to create directory '{directory}': {e}")
-    else:
-        print(f"Directory '{directory}' already exists.")
+    print("✅ Step 1: Setting random seed")
+    random.seed(seed)
+
+    motor = []
+    visu = []
+    audi = []
+    arti = []
+    neuron_pool_motor = set(range(0, 625))
+    neuron_pool_visu = set(range(0, 625))
+    neuron_pool_audi = set(range(0, 625))
+    neuron_pool_arti = set(range(0, 625))
+
+    print("✅ Step 2: Generating patterns...")
+    for i in range(0, nb_pattern):
+        motor.append(f.neurons2IDs(sorted(random.sample(list(neuron_pool_motor), size_pattern))))
+        visu.append(f.neurons2IDs(sorted(random.sample(list(neuron_pool_visu), size_pattern))))
+        audi.append(f.neurons2IDs(sorted(random.sample(list(neuron_pool_audi), size_pattern))))
+        arti.append(f.neurons2IDs(sorted(random.sample(list(neuron_pool_arti), size_pattern))))
+
+        neuron_pool_motor -= set(motor[-1])
+        neuron_pool_visu -= set(visu[-1])
+        neuron_pool_audi -= set(audi[-1])
+        neuron_pool_arti -= set(arti[-1])
+
+    print("✅ Step 3: Calling `show_owerlapp_pattern()`")
+    show_owerlapp_pattern(motor, visu, audi, arti)
+    
+    print("✅ Step 4: Returning patterns")
+    return motor, visu, audi, arti
+
+
+    
+    
+
+
 
 
