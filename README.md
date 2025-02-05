@@ -106,9 +106,10 @@ mkdir -p ~/felix_build && cd ~/felix_build
 Remove any old build files:
 
 ```bash
-rm -rf ~/felix_build/CMakeCache.txt ~/felix_build/CMakeFiles
-rm -rf ~/felix-module/CMakeCache.txt ~/nest_test/CMakeFiles
-rm -rf ~/felix_build/*  # Ensure a clean build directory
+rm -rf ~/felix_build/*
+rm -rf ~/nest_test/CMakeCache.txt ~/nest_test/CMakeFiles
+rm -rf ~/felix-module/CMakeCache.txt ~/felix-module/CMakeFiles
+
 ```
 
 Configure the Felix module:
