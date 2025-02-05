@@ -107,14 +107,14 @@ Remove any old build files:
 
 ```bash
 rm -rf ~/felix_build/CMakeCache.txt ~/felix_build/CMakeFiles
-rm -rf ~/felix-module/CMakeCache.txt ~/felix-module/CMakeFiles
+rm -rf ~/felix-module/CMakeCache.txt ~/nest_test/CMakeFiles
 rm -rf ~/felix_build/*  # Ensure a clean build directory
 ```
 
 Configure the Felix module:
 
 ```bash
-CMAKE_PREFIX_PATH=${CONDA_PREFIX} cmake -Dwith-nest=../nest_build/install/bin/nest-config ../felix-module
+CMAKE_PREFIX_PATH=${CONDA_PREFIX} cmake -Dwith-nest=../nest_build/install/bin/nest-config ../nest_test
 ```
 
 Compile the Felix module:
