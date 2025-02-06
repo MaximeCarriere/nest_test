@@ -5,6 +5,8 @@ import pandas as pd
 from collections import defaultdict
 from tqdm import tqdm  # For a nice progress bar
 import pickle
+import matplotlib.pyplot as plt
+import seaborn as sns
 from .area import Area
 from config import between_min, between_max
 from utils.file_operations import ensure_directory_exists
@@ -144,6 +146,7 @@ class FelixNet:
             ("source", "target", "weight"), output="pandas"
         )
 
+        
         # Compute actual number of connections per area pair
         for (src, tgt) in cross_system + within_system:
             try:
@@ -168,11 +171,35 @@ class FelixNet:
         print(f"{'Source Area':<10} → {'Target Area':<10} | {'# Connections':<10}")
         print("══════════════════════════════════════════════════")
 
+        heatmap_area = []
         for (src, tgt), count in connection_counts.items():
             print(f"{src:<10} → {tgt:<10} | {count:<10}")
-
+            heatmap_area.append([src, tgt, count])
+            
+        heatmap_area = pd.DataFrame(heatmap_area, columns=["Area1","Area2", "NB_Connections"])
+        heatmap_area = heatmap_area.pivot(index="Area1",columns="Area2",values="NB_Connections")
+        
         print("══════════════════════════════════════════════════")
         print("✅ **All Connections Established Successfully!**\n")
+        
+        # Define the specific order of areas
+        area_order = ['V1', 'TO', 'AT', 'PF_L', 'PM_L', 'M1_L', 'A1', 'AB', 'PB', 'PF_i', 'PM_i', 'M1_i']
+
+        # Reorder rows and columns based on the specific order
+        heatmap_area = heatmap_area.reindex(index=area_order, columns=area_order)
+
+        # Plot heatmap
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(heatmap_area, annot=True, fmt=".0f", cmap="viridis", linewidths=0.5)
+        plt.title("Inter-Area Connection Heatmap")
+        plt.xlabel("Target Area")
+        plt.ylabel("Source Area")
+        plt.xticks(rotation=45)
+        plt.yticks(rotation=0)
+        plt.savefig('./plot_training/heat_map_area.png')
+        print("══════════════════════════════════════════════════")
+        print("✅ **Heatmap Area saved in ./plot_training/heat_map_area.png!**\n")
+        
 
 
         
