@@ -1,8 +1,6 @@
 import nest
 from config import *
 
-import nest
-from config import *
 
 # Ensure felixmodule is installed before creating neurons
 if "felix_exc" not in nest.Models():
@@ -15,7 +13,7 @@ class Area:
 
 
 
-        pos = nest.spatial.grid(shape=[25, 25], extent=[25., 25.], edge_wrap=True)
+        pos = nest.spatial.grid(shape=[EXC_NEURONS, EXC_NEURONS], extent=[EXC_NEURONS, EXC_NEURONS], edge_wrap=True)
         self.exc = nest.Create('felix_exc', params={'om': 0,
                                     'k_1':k_1_exc,
                                     'tau_m':tau_m_exc,

@@ -8,7 +8,7 @@ import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
 from .area import Area
-from config import between_min, between_max
+from config import between_min, between_max, verbose, when_to_save
 from utils.file_operations import ensure_directory_exists
 from functions.function_annexe import stim_specs_patt_no, save_plot_weight, save_plot_activation_new, dat_from_file, sum_arrays
 
@@ -28,19 +28,20 @@ class FelixNet:
         self.areas = {area: Area(area) for area in ['V1', 'TO', 'AT', 'PF_L', 'PM_L', 'M1_L',
                                                     'A1', 'AB', 'PB', 'PF_i', 'PM_i', 'M1_i']}
 
-        ## 🔹 DEBUG: Print number of neurons in each area
-        print("\n✅ Checking Neuron Counts in Each Area:")
-        for area_name, area in self.areas.items():
-            try:
-                num_exc = len(area.exc)
-                num_inh = len(area.inh)
-                num_glob = len(area.glob)
-                num_pg = len(area.pg) if hasattr(area, 'pg') else 0
-                print(f"📌 Area {area_name}: Excitatory={num_exc}, Inhibitory={num_inh}, Global={num_glob}, PG={num_pg}")
-            except AttributeError as e:
-                print(f"❌ ERROR in area {area_name}: {e}")
+        if verbose==1:
+            ## 🔹 DEBUG: Print number of neurons in each area
+            print("\n✅ Checking Neuron Counts in Each Area:")
+            for area_name, area in self.areas.items():
+                try:
+                    num_exc = len(area.exc)
+                    num_inh = len(area.inh)
+                    num_glob = len(area.glob)
+                    num_pg = len(area.pg) if hasattr(area, 'pg') else 0
+                    print(f"📌 Area {area_name}: Excitatory={num_exc}, Inhibitory={num_inh}, Global={num_glob}, PG={num_pg}")
+                except AttributeError as e:
+                    print(f"❌ ERROR in area {area_name}: {e}")
 
-        print("✅ All areas initialized\n")
+            print("✅ All areas initialized\n")
 
         ## 🔹 Establish connections
         self.connect_areas()
@@ -140,66 +141,67 @@ class FelixNet:
                          {'synapse_model': 'abs_synapse', 'receptor_type': 1,
                           'weight': nest.random.uniform(between_min, between_max), 'delay': 1})
 
-        # **Retrieve and Count Connections**
-        print("\n📊 **Retrieving Connection Data...**")
-        network_weights = nest.GetConnections().get(
-            ("source", "target", "weight"), output="pandas"
-        )
+        if verbose==1:
+            # **Retrieve and Count Connections**
+            print("\n📊 **Retrieving Connection Data...**")
+            network_weights = nest.GetConnections().get(
+                ("source", "target", "weight"), output="pandas"
+            )
 
-        
-        # Compute actual number of connections per area pair
-        for (src, tgt) in cross_system + within_system:
-            try:
-                # ✅ Dynamically fetch excitatory neurons for each area
-                n_area1 = self.areas[src].exc.get(output="pandas")
-                n_area2 = self.areas[tgt].exc.get(output="pandas")
-
-                # ✅ Filter weight data to count connections from src to tgt
-                weight_data = network_weights[
-                    (network_weights["source"].isin(n_area1.index)) &
-                    (network_weights["target"].isin(n_area2.index))
-                ]
-
-                connection_counts[(src, tgt)] = len(weight_data)
-
-            except KeyError as e:
-                print(f"⚠️ Warning: Could not fetch data for {src} → {tgt}: {e}")
-
-        # **Summary of Connections**
-        print("\n📋 **Summary of Connections**")
-        print("══════════════════════════════════════════════════")
-        print(f"{'Source Area':<10} → {'Target Area':<10} | {'# Connections':<10}")
-        print("══════════════════════════════════════════════════")
-
-        heatmap_area = []
-        for (src, tgt), count in connection_counts.items():
-            print(f"{src:<10} → {tgt:<10} | {count:<10}")
-            heatmap_area.append([src, tgt, count])
             
-        heatmap_area = pd.DataFrame(heatmap_area, columns=["Area1","Area2", "NB_Connections"])
-        heatmap_area = heatmap_area.pivot(index="Area1",columns="Area2",values="NB_Connections")
-        
-        print("══════════════════════════════════════════════════")
-        print("✅ **All Connections Established Successfully!**\n")
-        
-        # Define the specific order of areas
-        area_order = ['V1', 'TO', 'AT', 'PF_L', 'PM_L', 'M1_L', 'A1', 'AB', 'PB', 'PF_i', 'PM_i', 'M1_i']
+            # Compute actual number of connections per area pair
+            for (src, tgt) in cross_system + within_system:
+                try:
+                    # ✅ Dynamically fetch excitatory neurons for each area
+                    n_area1 = self.areas[src].exc.get(output="pandas")
+                    n_area2 = self.areas[tgt].exc.get(output="pandas")
 
-        # Reorder rows and columns based on the specific order
-        heatmap_area = heatmap_area.reindex(index=area_order, columns=area_order)
+                    # ✅ Filter weight data to count connections from src to tgt
+                    weight_data = network_weights[
+                        (network_weights["source"].isin(n_area1.index)) &
+                        (network_weights["target"].isin(n_area2.index))
+                    ]
 
-        # Plot heatmap
-        plt.figure(figsize=(10, 8))
-        sns.heatmap(heatmap_area, annot=True, fmt=".0f", cmap="viridis", linewidths=0.5)
-        plt.title("Inter-Area Connection Heatmap")
-        plt.xlabel("Target Area")
-        plt.ylabel("Source Area")
-        plt.xticks(rotation=45)
-        plt.yticks(rotation=0)
-        plt.savefig('./plot_training/heat_map_area.png')
-        print("══════════════════════════════════════════════════")
-        print("✅ **Heatmap Area saved in ./plot_training/heat_map_area.png!**\n")
-        
+                    connection_counts[(src, tgt)] = len(weight_data)
+
+                except KeyError as e:
+                    print(f"⚠️ Warning: Could not fetch data for {src} → {tgt}: {e}")
+
+            # **Summary of Connections**
+            print("\n📋 **Summary of Connections**")
+            print("══════════════════════════════════════════════════")
+            print(f"{'Source Area':<10} → {'Target Area':<10} | {'# Connections':<10}")
+            print("══════════════════════════════════════════════════")
+
+            heatmap_area = []
+            for (src, tgt), count in connection_counts.items():
+                print(f"{src:<10} → {tgt:<10} | {count:<10}")
+                heatmap_area.append([src, tgt, count])
+                
+            heatmap_area = pd.DataFrame(heatmap_area, columns=["Area1","Area2", "NB_Connections"])
+            heatmap_area = heatmap_area.pivot(index="Area1",columns="Area2",values="NB_Connections")
+            
+            print("══════════════════════════════════════════════════")
+            print("✅ **All Connections Established Successfully!**\n")
+            
+            # Define the specific order of areas
+            area_order = ['V1', 'TO', 'AT', 'PF_L', 'PM_L', 'M1_L', 'A1', 'AB', 'PB', 'PF_i', 'PM_i', 'M1_i']
+
+            # Reorder rows and columns based on the specific order
+            heatmap_area = heatmap_area.reindex(index=area_order, columns=area_order)
+
+            # Plot heatmap
+            plt.figure(figsize=(10, 8))
+            sns.heatmap(heatmap_area, annot=True, fmt=".0f", cmap="viridis", linewidths=0.5)
+            plt.title("Inter-Area Connection Heatmap")
+            plt.xlabel("Target Area")
+            plt.ylabel("Source Area")
+            plt.xticks(rotation=45)
+            plt.yticks(rotation=0)
+            plt.savefig('./plot_training/heat_map_area.png')
+            print("══════════════════════════════════════════════════")
+            print("✅ **Heatmap Area saved in ./plot_training/heat_map_area.png!**\n")
+            
 
 
         
@@ -313,12 +315,13 @@ class FelixNet:
     def train_action_object(self, motor, visu, audi, arti, num_reps=10, t_on=16, t_off=30, stim_specs=None, nb_pattern=2, stim_strength=500):
     
         ensure_directory_exists("./save_network")
-        ensure_directory_exists("./processing_data")
+        ensure_directory_exists("./processing_data", clear=True)
 
 
         nest.SetKernelStatus({'overwrite_files': True, 'data_path': "./processing_data"})
         patt_no = 0
-        self.store("network_0", motor, visu, audi, arti)
+        if 0 in when_to_save:
+            self.store("network_0", motor, visu, audi, arti)
         gi_tot = []
         patt_no_count = [0] * nb_pattern
         count_firs_pres = 0
@@ -362,9 +365,16 @@ class FelixNet:
                     dat["Pres"] = patt_no_count[patt_no]
                     dat["patt_no"] = patt_no
                     save_plot_activation_new(patt_no_count[patt_no], dat, patt_no)
+                    
+                ## NEED TO REMOVE
+                dat = dat_from_file('./processing_data/felix-*.dat')
+                dat['sum'] = dat['matrix'].apply(sum_arrays)
+                dat["Pres"] = patt_no_count[patt_no]
+                dat["patt_no"] = patt_no
+                save_plot_activation_new(patt_no_count[patt_no], dat, patt_no)
 
                 # Save network at specific intervals
-                if (patt_no_count[-1] in [10, 30, 50, 100, 200, 300, 400, 500, 600, 800, 1000, 1200, 1500, 1700, 2000]) and (patt_no == nb_pattern - 1):
+                if (patt_no_count[-1] in when_to_save) and (patt_no == nb_pattern - 1) and (patt_no_count[-1]!=0):
                     self.store(f"network_{patt_no_count[-1]}", motor, visu, audi, arti)
 
         save_plot_weight(self, patt_no_count[-1])

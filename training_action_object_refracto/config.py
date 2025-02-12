@@ -1,3 +1,9 @@
+## Verbose (print)
+verbose = 0 #if verbose = 0 limited print || if 1 some print along the building/training
+
+## Saving round
+when_to_save = [10, 20, 50, 100] #When to save the network (number of presentation)
+
 # Global Parameters
 TOTAL_TRAINING = 100
 NB_PATTERN = 12
@@ -28,3 +34,8 @@ tau_m_inh = 10
 # Global inhibition
 k1_glob = 1
 tau_m_glob = 24
+
+
+# Define area size dynamically
+EXC_NEURONS = 25  # Change this value to set the size dynamically (e.g., 30x30)
+INH_NEURONS = EXC_NEURONS  # Keep inhibitory neurons equal to excitatory

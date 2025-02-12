@@ -8,6 +8,8 @@ from IPython.display import display
 import seaborn as sns
 import re
 import os
+from config import *
+
 
 
 # Plotting helpers
@@ -137,9 +139,11 @@ def from_file_pandas(fname, **kwargs):
 #    #ID=sender-(1251*area_num)
 #    return sender, 999
 
+
+    
 def sender2area(sender):
     """Converts Felix sender ID to its corresponding area and ID in area"""
-    
+
     remove_pg = {0:1,
              5: 2,
             6:3,
@@ -152,15 +156,16 @@ def sender2area(sender):
             add = remove_pg[i]
         else:
             add = 0
-            
-        ID=sender-(1251*i)-add
-        if ID <= 625:
+
+        to_remove = EXC_NEURONS*EXC_NEURONS*2+1
+        ID=sender-(to_remove*i)-add
+        if ID <= EXC_NEURONS*EXC_NEURONS:
             area_num=i
             return ID, area_num
         else:
             continue
     #ID=sender-(1251*area_num)
-    return sender, 999
+    return sender, 99999999
 
 def convert_nstr_to_pattern(nstr):
     '''If we don't cover this in class, use this function as follows:
@@ -179,17 +184,18 @@ def convert_nstr_to_pattern(nstr):
 
     # initialize empty matrix
     # each value in the matrix = 1 neuron
-    area = np.zeros((25,25))
+    area = np.zeros((EXC_NEURONS,EXC_NEURONS))
 
     # write 1 for each nID at the appropriate
     # position in the matrix
     for neuron in ns:
-        row = int(neuron/25)
-        col = neuron%25
+        row = int(neuron/EXC_NEURONS)
+        col = neuron%EXC_NEURONS
         area[row][col] += 1
 
     #area[area>1]=1
     return area
+
 
 def plot_spikes(dat, time):
     nrows, ncols = 2, 6
