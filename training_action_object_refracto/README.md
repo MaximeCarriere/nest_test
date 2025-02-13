@@ -70,20 +70,23 @@ During training, several plots are created and saved in the `plot_training` dire
   - `plot_training/arti_patterns.png`
 - **Description:** These plots visualize the neurons used in each pattern.
 
+  ![arti_patterns](https://github.com/user-attachments/assets/33fd3c07-e795-442f-8c5a-71bc7f97958b)
 
 
 ### **3️⃣ Activation Over Time**
 - **File:** `plot_training/plot_activation_X.png`
 - **Description:** Shows network activation over time for each area.
 
-  ![arti_patterns](https://github.com/user-attachments/assets/33fd3c07-e795-442f-8c5a-71bc7f97958b)
+![plot_activation_0](https://github.com/user-attachments/assets/7070d99b-ee27-4485-81a7-6e6fc51323c2)
+
 
 
 ### **4️⃣ Heatmap of Inter-Area Connections**
 - **File:** `plot_training/heat_map_area.png`
 - **Description:** Displays the number of connections between different areas.
 
-![plot_activation_0](https://github.com/user-attachments/assets/7070d99b-ee27-4485-81a7-6e6fc51323c2)
+![heat_map_area](https://github.com/user-attachments/assets/0a9c706e-aef7-439c-8b41-7386652a091f)
+
 
 
 ## 💾 Saving and Resuming Training
