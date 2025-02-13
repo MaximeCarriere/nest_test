@@ -101,10 +101,10 @@ def create_act_obj_pattern(nb_pattern, size_pattern, seed=42):
     visu = []
     audi = []
     arti = []
-    neuron_pool_motor = set(range(0, 625))
-    neuron_pool_visu = set(range(0, 625))
-    neuron_pool_audi = set(range(0, 625))
-    neuron_pool_arti = set(range(0, 625))
+    neuron_pool_motor = set(range(0, EXC_NEURONS*EXC_NEURONS))
+    neuron_pool_visu = set(range(0, EXC_NEURONS*EXC_NEURONS))
+    neuron_pool_audi = set(range(0, EXC_NEURONS*EXC_NEURONS))
+    neuron_pool_arti = set(range(0, EXC_NEURONS*EXC_NEURONS))
 
     for i in range(nb_pattern):
         motor.append(sorted(random.sample(list(neuron_pool_motor), size_pattern)))
@@ -120,7 +120,58 @@ def create_act_obj_pattern(nb_pattern, size_pattern, seed=42):
     print("✅ Step 3: Calling `show_owerlapp_pattern()`")
     show_owerlapp_pattern(motor, visu, audi, arti)
     
+    print("✅ Step 4: Calling 'plot_pattern_presence()'")
+    plot_pattern_presence(motor, EXC_NEURONS, "motor_patterns")
+    plot_pattern_presence(visu, EXC_NEURONS, "visu_patterns")
+    plot_pattern_presence(audi, EXC_NEURONS, "audi_patterns")
+    plot_pattern_presence(arti, EXC_NEURONS, "arti_patterns")
+    
     print("✅ Step 4: Returning patterns")
 
     return motor, visu, audi, arti
 
+def plot_pattern_presence(patterns, exc_neurons, filename):
+    """
+    Generates a subplot visualization of neuron presence for each pattern.
+
+    Args:
+    - patterns (list of lists): List of neuron indices for each pattern.
+    - exc_neurons (int): Number of excitatory neurons per row/column.
+    - filename (str): Name for the output plot image.
+    """
+
+    num_patterns = len(patterns)
+    cols = min(4, num_patterns)  # Limit to 4 columns
+    rows = (num_patterns // cols) + (num_patterns % cols > 0)  # Calculate required rows
+
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 4, rows * 4))  # Dynamic figure size
+    axes = np.array(axes).reshape(rows, cols)  # Ensure axes are in a 2D array for indexing
+
+    for i, pattern in enumerate(patterns):
+        row, col = divmod(i, cols)
+        
+        # Create presence matrix
+        presence_matrix = np.zeros((exc_neurons, exc_neurons))
+        for neuron in pattern:
+            r, c = divmod(neuron, exc_neurons)
+            presence_matrix[r, c] = 1  # Mark presence
+
+        ax = axes[row, col]  # Select subplot
+        sns.heatmap(presence_matrix, cmap="Blues", linewidths=0.1, linecolor="black", square=True, ax=ax)
+        ax.set_title(f"Pattern {i+1}")  # Title for each pattern
+        ax.set_xticks([])  # Remove axis labels for clarity
+        ax.set_yticks([])
+
+    # Hide empty subplots
+    for i in range(num_patterns, rows * cols):
+        fig.delaxes(axes.flatten()[i])
+
+    # Save the figure
+    output_dir = "./plot_training"
+    os.makedirs(output_dir, exist_ok=True)
+    save_path = os.path.join(output_dir, f"{filename}.png")
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()
+
+    print(f"✅ Pattern presence subplot saved: {save_path}")
