@@ -50,6 +50,18 @@ python main.py
 
 ---
 
+
+## ⚙️ Adjusting Training Parameters
+
+You can customize training parameters by modifying the `config.py` file in the `training_action_object_refracto` directory.
+
+### **Editing the Config File**
+To change parameters, open `config.py` with a text editor.
+
+
+---
+
+
 ## 📊 Generated Plots
 
 During training, several plots are created and saved in the `plot_training` directory.
