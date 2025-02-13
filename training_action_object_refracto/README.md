@@ -17,7 +17,78 @@ conda activate nest
 Move to the directory where the training script is located:
 
 ```
-cd /path/to/nest_test/training_action_object_refracto
+cd ~/nest_test/training_action_object_refracto
+
 ```
+
+3️⃣ Run the Training
+Execute the main.py script:
+
+```
+python main.py
+
+```
+
+## 🛠 Steps in the Training Process
+
+### **1️⃣ Network Initialization**
+- FelixNet initializes **12 areas** with excitatory and inhibitory neurons.
+- Areas are connected with specific connection rules.
+
+### **2️⃣ Pattern Creation**
+- **Motor, visual, auditory, and articulatory patterns** are generated.
+- Patterns are saved and used during training.
+
+### **3️⃣ Training Process**
+- Patterns are presented to the network in multiple repetitions.
+- Neurons fire according to their connections and external stimuli.
+
+### **4️⃣ Synaptic Plasticity Updates**
+- Weights are updated based on Hebbian learning rules.
+- Network stores intermediate states at defined intervals.
+
+### **5️⃣ Final Network State**
+- The final trained network is saved for later evaluation.
+
+---
+
+## 📊 Generated Plots
+
+During training, several plots are created and saved in the `plot_training` directory.
+
+### **1️⃣ Pattern Overlap Matrix**
+- **File:** `plot_training/pattern_overlapp_matrix.png`
+- **Description:** Shows how much different patterns overlap.
+![pattern_overlapp_matrix](https://github.com/user-attachments/assets/5add76a4-66f4-4024-91af-ef099c7f527c)
+
+
+### **2️⃣ Pattern Presence**
+- **Files:**
+  - `plot_training/motor_patterns.png`
+  - `plot_training/visu_patterns.png`
+  - `plot_training/audi_patterns.png`
+  - `plot_training/arti_patterns.png`
+- **Description:** These plots visualize the neurons used in each pattern.
+
+![arti_patterns](https://github.com/user-attachments/assets/9770be3c-fe0d-4b5e-ae61-95023e1db478)
+
+
+### **3️⃣ Activation Over Time**
+- **File:** `plot_training/plot_activation_X.png`
+- **Description:** Shows network activation over time for each area.
+
+  
+
+### **4️⃣ Heatmap of Inter-Area Connections**
+- **File:** `plot_training/heat_map_area.png`
+- **Description:** Displays the number of connections between different areas.
+
+![plot_activation_0](https://github.com/user-attachments/assets/7070d99b-ee27-4485-81a7-6e6fc51323c2)
+
+
+## 💾 Saving and Resuming Training
+- The network state is saved at different intervals (e.g., 10, 50, 100 training steps).
+- If interrupted, you can **resume** training from the last saved state.
+
 
 
