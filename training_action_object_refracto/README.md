@@ -59,8 +59,8 @@ During training, several plots are created and saved in the `plot_training` dire
 ### **1️⃣ Pattern Overlap Matrix**
 - **File:** `plot_training/pattern_overlapp_matrix.png`
 - **Description:** Shows how much different patterns overlap.
-![pattern_overlapp_matrix](https://github.com/user-attachments/assets/5add76a4-66f4-4024-91af-ef099c7f527c)
 
+![pattern_overlapp_matrix](https://github.com/user-attachments/assets/249f5e6d-654e-4678-953c-f38e8dfb0bd0)
 
 ### **2️⃣ Pattern Presence**
 - **Files:**
