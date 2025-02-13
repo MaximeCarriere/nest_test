@@ -18,7 +18,6 @@ Move to the directory where the training script is located:
 
 ```
 cd ~/nest_test/training_action_object_refracto
-
 ```
 
 3️⃣ Run the Training
@@ -26,7 +25,6 @@ Execute the main.py script:
 
 ```
 python main.py
-
 ```
 
 ## 🛠 Steps in the Training Process
