@@ -214,7 +214,7 @@ def plot_tca(dfS, cond, pres, action_object=True, save=True):
 
     # Save figure
     if save==True:
-        plt.savefig(cond+'_TCA_'+str(pres)+'_presentations.png', dpi=300, bbox_inches='tight')
+        plt.savefig(TESTING_OUTPUT_GRAPH+cond+'_TCA_'+str(pres)+'_presentations.png', dpi=300, bbox_inches='tight')
     plt.show()
     plt.close()
     
@@ -280,7 +280,7 @@ def plot_ca_size(re, pres=1000, save=True):
 
     # Save figure if requested
     if save:
-        plt.savefig("CA_Size_"+str(pres)+"_presentations.png", dpi=300, bbox_inches='tight')
+        plt.savefig(TESTING_OUTPUT_GRAPH+"CA_Size_"+str(pres)+"_presentations.png", dpi=300, bbox_inches='tight')
 
     plt.show()
     plt.close()
@@ -344,7 +344,7 @@ def plot_ca_size_thresh(re, pres=1000, save=True):
 
     # Save figure if requested
     if save:
-        plt.savefig(f"CA_Size_Threshold_{pres}_presentations.png", dpi=300, bbox_inches='tight')
+        plt.savefig(TESTING_OUTPUT_GRAPH+f"CA_Size_Threshold_{pres}_presentations.png", dpi=300, bbox_inches='tight')
 
     plt.show()
     plt.close()
