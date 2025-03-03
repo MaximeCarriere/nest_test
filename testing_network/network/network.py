@@ -125,7 +125,7 @@ class FelixNet:
         dataS = []
         spikes_tot  = []
         print("TESTING")
-        for stim in range(0, 4):
+        for stim in range(0, num_reps):
             print("      STIM:   "+str(stim))
             for patt_no in range(0, len(audi)):
             
@@ -216,7 +216,7 @@ class FelixNet:
         dataS = []
         spikes_tot  = []
         print("TESTING")
-        for stim in range(0, 4):
+        for stim in range(0, num_reps):
             print("      STIM:   "+str(stim))
             for patt_no in range(0, len(audi)):
             
