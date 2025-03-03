@@ -54,6 +54,6 @@ This project is licensed under the MIT License. See `LICENSE` for details.
 
 ## Contact
 For any issues or inquiries, please contact:
-- **Your Name** (your.email@example.com)
+- **Maxime Carriere** 
 - Open an issue in the repository
 
