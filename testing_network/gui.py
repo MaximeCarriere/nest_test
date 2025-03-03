@@ -148,4 +148,4 @@ if __name__ == "__main__":
                            inputs=[auditory_input, articulatory_input, visual_input, motor_input, patt_no, num_reps, t_on, t_off],
                            outputs=[test_output, plot_output])
 
-        gui.launch()
+        gui.launch(server_name="0.0.0.0", server_port=8080)
