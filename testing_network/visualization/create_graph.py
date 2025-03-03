@@ -11,6 +11,10 @@ from IPython.display import display
 import seaborn as sns
 import re
 import os
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import pandas as pd
 import pickle
 import glob
 import warnings
@@ -350,36 +354,115 @@ def plot_ca_size_thresh(re, pres=1000, save=True):
     plt.close()
 
 
-def plot_graphs():
-    """
-    Generate and save plots based on the selected GRAPH_MODE options in config.py.
-    """
 
-    os.makedirs(TESTING_OUTPUT_GRAPH, exist_ok=True)  # Ensure output directory exists
+def create_interactive_plot(dfS, cond, pres, action_object=True):
+    """ Create an interactive 2x6 Plotly plot from the test results with individual titles for each subplot."""
+    
+    list_area = ['V1', 'TO', 'AT', 'PF_L', 'PM_L', 'M1_L', 'A1', 'AB', 'PB', 'PF_i', 'PM_i', 'M1_i']
 
-    for pres in NETWORKS_LIST_GRAPH:
-        print(f"📊 Generating plots for {pres} presentations...")
+    dfS = dfS[dfS.patt_no_index==1]
 
-        if "auditory" in GRAPH_MODE or "articulatory" in GRAPH_MODE:
-            for cond in ["Audi", "Arti"]:
-                dfS = read_tca_files(TESTING_OUTPUT_DIR, cond, pres)
-                if dfS is not None and not dfS.empty:
-                    action_obj = cond in ["Audi", "Arti"]
-                    plot_tca(dfS, cond, pres, action_object=action_obj, save=True)
+    dfS["nstr"] = dfS["nstr"].apply(lambda x: literal_eval(x) if "[" in x else x)
 
-        if "ca_size" in GRAPH_MODE:
-            print(f"🧠 Gathering CA Size Data for {pres} presentations...")
-            re = gather_data_ca_size([pres])
-            if re is not None and not re.empty:
-                plot_ca_size(re, pres, save=True)
+    # Define the columns you want to preserve
+    key_columns = ["AreaAbs", "patt_no", "time", "stim", "Cond","patt_no_index"]
 
-        if "ca_size_over_threshold" in GRAPH_MODE:
-            print(f"📈 Plotting CA Size over Threshold for {pres} presentations...")
-            re = gather_data_ca_size([pres])
-            if re is not None and not re.empty:
-                plot_ca_size_thresh(re, pres, save=True)
+    # Create all possible combinations of key columns
+    idx = pd.MultiIndex.from_product(
+        [dfS[col].unique() for col in key_columns], names=key_columns
+    )
 
-    print("✅ All selected graphs have been generated successfully!")
+    # Convert df to have the same MultiIndex
+    dfS = dfS.set_index(key_columns)
+
+    # Merge with a DataFrame of all possible combinations, ensuring only 'sum' is filled with 0
+    dfS = dfS.reindex(idx).reset_index()
+    dfS["sum"] = dfS["sum"].fillna(0)  # Fill only the 'sum' column with 0
+
+    # Optional: Forward fill if needed
+    dfS.loc[:, dfS.columns != 'nstr'] = dfS.loc[:, dfS.columns != 'nstr'].ffill()
+
+
+    dfS1 = dfS[dfS.time < 30]
+
+
+
+    # Number of rows and columns for subplots
+    nrows, ncols = 2, 6
+
+    # Create subplots with 2 rows and 6 columns, and titles based on list_area
+    fig = make_subplots(
+        rows=nrows, cols=ncols,
+        subplot_titles=list_area,
+        shared_yaxes=True,
+        vertical_spacing=0.1,  # Adjusted for reduced space between rows
+        horizontal_spacing=0.01  # Adjust space between columns
+    )
+
+    # Calculate the global maximum y-value across the entire dataset
+    max_y_value = dfS["sum"].max()  # This is the max value across all areas and time points
+
+    # Loop over all areas (12)
+    for i, area in enumerate(list_area):
+        # Filter data for the current area
+        area_data = dfS[dfS['AreaAbs'] == i]  # Assuming AreaAbs is a column in dfS that denotes the area index
+
+        # Group by 'patt_no' and 'time' to calculate the mean for each time step
+        grouped_data = area_data.groupby(['patt_no', 'time']).agg(
+            mean_sum=('sum', 'mean')
+        ).reset_index()
+
+        # Plot the mean for each area
+        row = (i // ncols) + 1  # Calculate row for subplot
+        col = (i % ncols) + 1   # Calculate column for subplot
+
+        # Plot the mean as a line (make this the only interactive plot)
+        fig.add_trace(
+            go.Scatter(
+                x=grouped_data["time"],
+                y=grouped_data["mean_sum"],
+                mode="lines",
+                name=f"Mean {area}",
+                line=dict(width=2),
+                hoverinfo="x+y",  # Only show mean value when hovering
+                showlegend=False  # Remove legend
+            ),
+            row=row, col=col
+        )
+
+        # Set the individual y-axis limits for each subplot based on the global max_y_value
+        fig.update_yaxes(
+            range=[0, max_y_value * 1.1],  # Set y-limits based on the global max value
+            row=row, col=col
+        )
+
+        # Add y-axis title only for area 0 and 6
+        if i == 0 or i == 6:
+            fig.update_yaxes(
+                title_text="Number of Spikes",
+                row=row, col=col
+            )
+
+        # Add x-axis title ("Time-step") only for areas in the second row (i > 5)
+        if i > 5:
+            fig.update_xaxes(
+                title_text="Time-step",
+                row=row, col=col
+            )
+
+    # Update layout settings for square subplots and reduced space
+    fig.update_layout(
+        showlegend=False,  # Disable the global legend
+        height=500,  # Adjusted for better readability
+        width=1000,  # Ensure figure is wide enough to accommodate subplots
+        #xaxis_title="Time-step",
+        #yaxis_title="Number of Spikes",
+    )
+
+
+    # Return the figure for Gradio to render
+    return fig
+
 
 if __name__ == "__main__":
     plot_graphs()

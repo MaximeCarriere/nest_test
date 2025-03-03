@@ -29,6 +29,9 @@ class FelixNet:
         self.reconnect_areas(directory)
         self.connect_recorders()
         
+        
+        
+        
     def reconnect_areas(self, directory_network):
         """
         Create inter-area connections.
@@ -107,6 +110,10 @@ class FelixNet:
         for area in self.areas.values():
             nest.Connect(area.exc, self.spike_rec)
             nest.Connect(self.vm, area.exc)
+            
+
+            
+            
     def stimulation_on(self, stim_specs):
         for area, specs in stim_specs.items():
             self.areas[area].stimulation_on(**specs)
@@ -206,6 +213,87 @@ class FelixNet:
         dataS["Cond"]="Audi"
         dataS.to_csv("./testing_data/audi_"+str(patt_no_count)+"_presentations.csv")
         
+        
+    def test_gui(self, auditory_input, articulatory_input,
+             visual_input, motor_input,
+             patt_no, num_reps=2, t_on=2, t_off=30):
+
+        """Run auditory network test from GUI input."""
+        ensure_directory_exists("./testing_gui")
+        
+        stim_strength = 500
+        nest.SetKernelStatus({'overwrite_files': True, 'data_path': "./processing_data"})
+
+        dataS = []
+        spikes_tot  = []
+        print("🧪 TESTING STARTED", flush=True)
+
+        try:
+            for stim in range(0, num_reps):
+                print(f"      🔄 STIM: {stim}", flush=True)
+
+
+                for patt_no_index in range(0, 2):
+                    run_twice = (stim == 0 and patt_no_index == 0)
+                    iterations = 2 if run_twice else 1
+
+                    for i in range(iterations):
+                        with nest.RunManager():
+                            nest.SetKernelStatus({'overwrite_files': True})
+
+                            # Generate stimulation specs
+                            stim_specs_test = stim_specs_patt_no_testing_audi_only(auditory_input, patt_no, stim_strength)
+
+                            print(f"🔍 Running pattern {patt_no_index} with strength {stim_strength}", flush=True)
+
+                            # Turn off stimulation before running
+                            self.stimulation_off()
+                            nest.Run(5)
+
+                            # Apply stimulation
+                            self.stimulation_on(stim_specs_test)
+                            nest.Run(t_on)
+
+                            # Pause and check activity levels
+                            counter_stim_pause = 0
+                            self.stimulation_off()
+                            
+                            gi_AB = self.areas["AB"].glob.get(output="pandas")["V_m"].values[0]
+                            gi_PM_i = self.areas["PM_i"].glob.get(output="pandas")["V_m"].values[0]
+                            
+                            print(f"🎯 gi_AB: {gi_AB}, gi_PM_i: {gi_PM_i}", flush=True)
+
+                            while ((gi_AB > 0.75) or (gi_PM_i > 0.75) or (counter_stim_pause < t_off)):
+                                nest.Run(0.5)
+                                gi_AB = self.areas["AB"].glob.get(output="pandas")["V_m"].values[0]
+                                gi_PM_i = self.areas["PM_i"].glob.get(output="pandas")["V_m"].values[0]
+                                counter_stim_pause += 0.5
+
+                            print(f"✅ Stimuli processed. Counter: {counter_stim_pause}", flush=True)
+
+                            if iterations == 1:
+                                dat = dat_from_file('./processing_data/felix-*.dat')
+                                dat['sum'] = dat['matrix'].apply(sum_arrays)
+                                dat["stim"] = stim
+                                dat["patt_no"] = patt_no
+                                dat["patt_no_index"] = patt_no_index
+                                dat["time"] = dat["time"] - dat["time"].min()
+                                dataS.append(dat)
+
+            dataS = pd.concat(dataS)
+            dataS["Cond"] = "Audi"
+            output_file = f"./testing_gui/gui_data.csv"
+            dataS.to_csv(output_file)
+
+            print(f"✅ Test completed. Results saved to {output_file}", flush=True)
+            return f"✅ Test completed! Results saved to {output_file}"
+
+        except Exception as e:
+            print(f"❌ ERROR in test_gui: {str(e)}", flush=True)
+            return f"❌ Error: {str(e)}"
+
+
+                
         
         
     def test_art(self, audi, arti,  patt_no_count, num_reps=10, t_on=16, t_off=30):
