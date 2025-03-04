@@ -77,3 +77,7 @@ def main():
 
     # ✅ Launch the Gradio app
     gui.launch(server_name="0.0.0.0", server_port=int(os.getenv("PORT", 8080)))
+
+# Make sure the main function is called when the script is executed
+if __name__ == "__main__":
+    main()
