@@ -150,5 +150,8 @@ if __name__ == "__main__":
                            outputs=[test_output, plot_output])
 
         # ✅ Launch the Gradio app
+        print("Launching Gradio on 0.0.0.0:8080", flush=True)
         gui.launch(server_name="0.0.0.0", server_port=int(os.getenv("PORT", 8080)))
+        print("Gradio launched successfully", flush=True)
+
 
