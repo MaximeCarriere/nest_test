@@ -28,6 +28,9 @@ if __name__ == "__main__":
     # ✅ Initialize FelixNet once for the GUI (but not for CLI mode)
     felix_net = FelixNet()
 
+    # ✅ Confirm FelixNet initialization
+    print("FelixNet Initialized, now starting Gradio GUI...", flush=True)
+
     # ✅ Run GUI or CLI mode
     parser = argparse.ArgumentParser(description="FelixNet Testing GUI")
     parser.add_argument("--cli", action="store_true", help="Run in command-line mode without GUI")
@@ -102,7 +105,7 @@ if __name__ == "__main__":
             fig = create_interactive_plot(pd.read_csv("./testing_gui/gui_data.csv"), "Audi", 1)
             return result, fig
 
-        # ✅ Start GUI
+        # ✅ Start GUI ONLY AFTER FelixNet is initialized and network is rebuilt
         with gr.Blocks() as gui:
             gr.Markdown("## 🧪 FelixNet Testing GUI")
 
@@ -150,8 +153,6 @@ if __name__ == "__main__":
                            outputs=[test_output, plot_output])
 
         # ✅ Launch the Gradio app
-        print("Launching Gradio on 0.0.0.0:8080", flush=True)
+        print("Now launching Gradio GUI...", flush=True)
         gui.launch(server_name="0.0.0.0", server_port=int(os.getenv("PORT", 8080)))
         print("Gradio launched successfully", flush=True)
-
-
