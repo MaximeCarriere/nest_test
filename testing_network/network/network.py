@@ -4,6 +4,7 @@ import pickle
 import pandas as pd
 from functions.function_annexe import *
 from utils.utils import ensure_directory_exists
+from utils.stim import stim_specs_patt_no_gui
 from network.restore_area import Restore_Area
 
 
@@ -107,9 +108,13 @@ class FelixNet:
         self.spike_rec = nest.Create('felix_spike_recorder', {'record_to': 'ascii', 'label': 'felix'})
         self.vm = nest.Create('multimeter', {'record_from': ["V_m"], 'record_to': 'ascii', 'label': 'V_m'})
         
+        # testing
+        #self.gi_rec = nest.Create('felix_gi_recorder', {'record_to': 'ascii', 'label': 'felix'})
+        
         for area in self.areas.values():
             nest.Connect(area.exc, self.spike_rec)
             nest.Connect(self.vm, area.exc)
+            nest.Connect(self.vm, area.glob)
             
 
             
@@ -125,6 +130,7 @@ class FelixNet:
             
     def test_aud(self, audi, arti,  patt_no_count, num_reps=10, t_on=16, t_off=30):
         ensure_directory_exists("./testing_data")
+        
         
         stim_strength = 500
         nest.SetKernelStatus({'overwrite_files': True, 'data_path': "./processing_data"})
@@ -215,9 +221,28 @@ class FelixNet:
         
         
     def test_gui(self, auditory_input, articulatory_input,
-             visual_input, motor_input,
-             patt_no, num_reps=2, t_on=2, t_off=30):
+                 visual_input, motor_input,
+                 patt_no, num_reps=2, t_on=2, t_off=30,
+                 auditory_check=False, articulatory_check=False,
+                 visual_check=False, motor_check=False):
+        # Now you can use these checkboxes to filter out the modalities that are checked
+        selected_modalities = []
+        if auditory_check:
+            selected_modalities.append("Auditory")
+        if articulatory_check:
+            selected_modalities.append("Articulatory")
+        if visual_check:
+            selected_modalities.append("Visual")
+        if motor_check:
+            selected_modalities.append("Motor")
 
+        # Result message including checked modalities
+        modalities_message = "✅ Selected Modalities: " + ", ".join(selected_modalities) if selected_modalities else "❌ No modalities selected."
+
+        # Print modalities_message to check
+        print(modalities_message)  # This will show up in the terminal where the script is running
+
+        list_area = ['V1', 'TO', 'AT', 'PF_L', 'PM_L', 'M1_L', 'A1', 'AB', 'PB', 'PF_i', 'PM_i', 'M1_i']
         """Run auditory network test from GUI input."""
         ensure_directory_exists("./testing_gui")
         
@@ -226,64 +251,86 @@ class FelixNet:
 
         dataS = []
         spikes_tot  = []
+        gi_tot = []
         print("🧪 TESTING STARTED", flush=True)
 
         try:
-            for stim in range(0, num_reps):
+            for stim in range(0, num_reps+1):
                 print(f"      🔄 STIM: {stim}", flush=True)
 
+                with nest.RunManager():
+                    nest.SetKernelStatus({'overwrite_files': True})
 
-                for patt_no_index in range(0, 2):
-                    run_twice = (stim == 0 and patt_no_index == 0)
-                    iterations = 2 if run_twice else 1
+                    # Generate stimulation specs
+                    stim_specs_test = stim_specs_patt_no_gui(auditory_input,
+                                                                articulatory_input,
+                                                                visual_input,
+                                                                motor_input,
+                                                                patt_no,
+                                                                num_reps,
+                                                                t_on,
+                                                                t_off,
+                                                                auditory_check,
+                                                                articulatory_check,
+                                                                visual_check,
+                                                                motor_check,
+                                                                stim_strength)
 
-                    for i in range(iterations):
-                        with nest.RunManager():
-                            nest.SetKernelStatus({'overwrite_files': True})
+                    # Turn off stimulation before running
+                    self.stimulation_off()
+                    stp = 0
+                    while stp <=5:
+                        nest.Run(0.5)
+                        stp = stp + 0.5
+                        for area in list_area:
+                            gi_eph = self.areas[area].glob.get(output="pandas")["V_m"].values[0]
+                            gi_tot.append([stp, area, gi_eph])
+                    # Apply stimulation
+                    self.stimulation_on(stim_specs_test)
+                    
+                    while stp<=5+t_on:
+                        nest.Run(0.5)
+                        stp = stp + 0.5
+                        for area in list_area:
+                            gi_eph = self.areas[area].glob.get(output="pandas")["V_m"].values[0]
+                            gi_tot.append([stp, area, gi_eph])
 
-                            # Generate stimulation specs
-                            stim_specs_test = stim_specs_patt_no_testing_audi_only(auditory_input, patt_no, stim_strength)
+                    # Pause and check activity levels
+                    counter_stim_pause = 0
+                    self.stimulation_off()
+                    
+                    gi_AB = self.areas["AB"].glob.get(output="pandas")["V_m"].values[0]
+                    gi_PM_i = self.areas["PM_i"].glob.get(output="pandas")["V_m"].values[0]
+                    
+                    print(f"🎯 gi_AB: {gi_AB}, gi_PM_i: {gi_PM_i}", flush=True)
 
-                            print(f"🔍 Running pattern {patt_no_index} with strength {stim_strength}", flush=True)
+                    while ((gi_AB > 0.75) or (gi_PM_i > 0.75) or (counter_stim_pause < t_off)):
+                        nest.Run(0.5)
+                        stp = stp + 0.5
+                        gi_AB = self.areas["AB"].glob.get(output="pandas")["V_m"].values[0]
+                        gi_PM_i = self.areas["PM_i"].glob.get(output="pandas")["V_m"].values[0]
+                        counter_stim_pause += 0.5
+                        for area in list_area:
+                            gi_eph = self.areas[area].glob.get(output="pandas")["V_m"].values[0]
+                            gi_tot.append([stp, area, gi_eph])
 
-                            # Turn off stimulation before running
-                            self.stimulation_off()
-                            nest.Run(5)
+                    print(f"✅ Stimuli processed. Counter: {counter_stim_pause}", flush=True)
 
-                            # Apply stimulation
-                            self.stimulation_on(stim_specs_test)
-                            nest.Run(t_on)
-
-                            # Pause and check activity levels
-                            counter_stim_pause = 0
-                            self.stimulation_off()
-                            
-                            gi_AB = self.areas["AB"].glob.get(output="pandas")["V_m"].values[0]
-                            gi_PM_i = self.areas["PM_i"].glob.get(output="pandas")["V_m"].values[0]
-                            
-                            print(f"🎯 gi_AB: {gi_AB}, gi_PM_i: {gi_PM_i}", flush=True)
-
-                            while ((gi_AB > 0.75) or (gi_PM_i > 0.75) or (counter_stim_pause < t_off)):
-                                nest.Run(0.5)
-                                gi_AB = self.areas["AB"].glob.get(output="pandas")["V_m"].values[0]
-                                gi_PM_i = self.areas["PM_i"].glob.get(output="pandas")["V_m"].values[0]
-                                counter_stim_pause += 0.5
-
-                            print(f"✅ Stimuli processed. Counter: {counter_stim_pause}", flush=True)
-
-                            if iterations == 1:
-                                dat = dat_from_file('./processing_data/felix-*.dat')
-                                dat['sum'] = dat['matrix'].apply(sum_arrays)
-                                dat["stim"] = stim
-                                dat["patt_no"] = patt_no
-                                dat["patt_no_index"] = patt_no_index
-                                dat["time"] = dat["time"] - dat["time"].min()
-                                dataS.append(dat)
+                    dat = dat_from_file('./processing_data/felix-*.dat')
+                    dat['sum'] = dat['matrix'].apply(sum_arrays)
+                    dat["stim"] = stim
+                    dat["patt_no"] = patt_no
+                    dat["time"] = dat["time"] - dat["time"].min()
+                    dataS.append(dat)
+                    
 
             dataS = pd.concat(dataS)
             dataS["Cond"] = "Audi"
             output_file = f"./testing_gui/gui_data.csv"
             dataS.to_csv(output_file)
+            ## Save Global Inhibition
+            gi_tot = pd.DataFrame(gi_tot, columns=["stp","area","GI"])
+            gi_tot.to_csv("./testing_gui/gui_data_gi.csv")
 
             print(f"✅ Test completed. Results saved to {output_file}", flush=True)
             return f"✅ Test completed! Results saved to {output_file}"

@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.express as px
 from network.network import FelixNet
 from visualization.create_graph import create_interactive_plot  # Import the new function
+from utils import *
 
 # ✅ Global FelixNet instance (updated after rebuild)
 felix_net = None
@@ -50,7 +51,9 @@ if __name__ == "__main__":
         motor = network["pattern_motor"]
 
         patt_no = int(input("Enter pattern number: "))
-        num_reps = int(input("Enter number of repetitions: "))
+        num_reps = int(input("Enter number of repetitions (Max 5): "))
+        num_reps = gr.Number(label="Number of Repetitions", value=2, maximum=5)
+
         t_on = int(input("Enter Time ON: "))
         t_off = int(input("Enter Time OFF: "))
 
@@ -81,7 +84,7 @@ if __name__ == "__main__":
                 visual = network.get("pattern_visual") or []
                 motor = network.get("pattern_motor") or []
 
-                print(f"📊 Loaded Data - Audi: {audi}, Arti: {arti}, Visual: {visual}, Motor: {motor}", flush=True)
+                print("📊 Loaded Data", flush=True)
 
                 # ✅ Rebuild the network
                 f.rebuild_net(directory)
@@ -95,21 +98,41 @@ if __name__ == "__main__":
                 return f"❌ Error: {str(e)}", [], [], [], [], 1
 
         # ✅ Function to Run the Test and Show the Plot
-        def run_test(auditory_input, articulatory_input, visual_input, motor_input, patt_no, num_reps, t_on, t_off):
+        def run_test(auditory_input, articulatory_input, visual_input, motor_input, patt_no, num_reps, t_on, t_off,
+             auditory_check, articulatory_check, visual_check, motor_check, plot_gi):
             if felix_net is None:
                 return "❌ Error: Network not rebuilt. Please rebuild first.", None
 
-            result = felix_net.test_gui(auditory_input, articulatory_input, visual_input, motor_input, patt_no, num_reps, t_on, t_off)
+            # Run the actual test
+            result = felix_net.test_gui(
+                auditory_input,
+                articulatory_input,
+                visual_input,
+                motor_input,
+                patt_no,
+                num_reps,
+                t_on,
+                t_off,
+                auditory_check,
+                articulatory_check,
+                visual_check,
+                motor_check
+            )
 
-            # Generate Plot
-            fig = create_interactive_plot(pd.read_csv("./testing_gui/gui_data.csv"), "Audi", 1)
+            # Load the data
+            dfS = pd.read_csv("./testing_gui/gui_data.csv")
+            gi = pd.read_csv("./testing_gui/gui_data_gi.csv") if plot_gi else pd.DataFrame()  # Use GI data if selected, else empty DataFrame
+
+            # Generate the plot
+            fig = create_interactive_plot(dfS, gi)  # Pass data based on GI availability
+
             return result, fig
 
         # ✅ Start GUI ONLY AFTER FelixNet is initialized and network is rebuilt
         with gr.Blocks() as gui:
             gr.Markdown("## 🧪 FelixNet Testing GUI")
 
-            network_file = gr.Textbox(label="Enter Network File Path")
+            network_file = gr.Textbox(label="Enter Network File Path", value="/shared/network_1000")
 
             # 🏁 **Rebuild Network Button**
             rebuild_btn = gr.Button("Rebuild Network")
@@ -136,12 +159,16 @@ if __name__ == "__main__":
                               inputs=[network_file],
                               outputs=[rebuild_output, auditory_input, articulatory_input, visual_input, motor_input, patt_no])
 
-            num_reps = gr.Number(label="Number of Repetitions", value=2)
-            t_on = gr.Number(label="Time ON", value=2)
-            t_off = gr.Number(label="Time OFF", value=30)
+            with gr.Row():
+                num_reps = gr.Number(label="Number of Repetitions", value=2, maximum=5)
+                t_on = gr.Number(label="Time ON", value=2)
+                t_off = gr.Number(label="Time OFF", value=30)
+
+            # ✅ Checkbox for plotting Global Inhibition
+            plot_gi_checkbox = gr.Checkbox(label="Plot Global Inhibition", value=False)
 
             # ✅ Test button
-            test_btn = gr.Button("Run test_aud")
+            test_btn = gr.Button("Run Testing")
             test_output = gr.Textbox(label="Test Status", interactive=False)
 
             # ✅ Plot Output (Interactive)
@@ -149,8 +176,9 @@ if __name__ == "__main__":
 
             # ✅ Run test and show plot
             test_btn.click(run_test,
-                           inputs=[auditory_input, articulatory_input, visual_input, motor_input, patt_no, num_reps, t_on, t_off],
-                           outputs=[test_output, plot_output])
+               inputs=[auditory_input, articulatory_input, visual_input, motor_input, patt_no, num_reps, t_on, t_off,
+                       auditory_check, articulatory_check, visual_check, motor_check, plot_gi_checkbox],
+               outputs=[test_output, plot_output])
 
         # ✅ Launch the Gradio app
         print("Now launching Gradio GUI...", flush=True)

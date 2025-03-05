@@ -355,17 +355,17 @@ def plot_ca_size_thresh(re, pres=1000, save=True):
 
 
 
-def create_interactive_plot(dfS, cond, pres, action_object=True):
+def create_interactive_plot(dfS, gi):
     """ Create an interactive 2x6 Plotly plot from the test results with individual titles for each subplot."""
     
     list_area = ['V1', 'TO', 'AT', 'PF_L', 'PM_L', 'M1_L', 'A1', 'AB', 'PB', 'PF_i', 'PM_i', 'M1_i']
 
-    dfS = dfS[dfS.patt_no_index==1]
+    dfS = dfS[dfS.stim > 0]
 
     dfS["nstr"] = dfS["nstr"].apply(lambda x: literal_eval(x) if "[" in x else x)
 
     # Define the columns you want to preserve
-    key_columns = ["AreaAbs", "patt_no", "time", "stim", "Cond","patt_no_index"]
+    key_columns = ["AreaAbs", "patt_no", "time", "stim", "Cond"]
 
     # Create all possible combinations of key columns
     idx = pd.MultiIndex.from_product(
@@ -382,10 +382,9 @@ def create_interactive_plot(dfS, cond, pres, action_object=True):
     # Optional: Forward fill if needed
     dfS.loc[:, dfS.columns != 'nstr'] = dfS.loc[:, dfS.columns != 'nstr'].ffill()
 
-
     dfS1 = dfS[dfS.time < 30]
-
-
+    if gi.empty==False:
+        gi = gi.groupby(["stp", "area"]).mean().reset_index()
 
     # Number of rows and columns for subplots
     nrows, ncols = 2, 6
@@ -396,11 +395,17 @@ def create_interactive_plot(dfS, cond, pres, action_object=True):
         subplot_titles=list_area,
         shared_yaxes=True,
         vertical_spacing=0.1,  # Adjusted for reduced space between rows
-        horizontal_spacing=0.01  # Adjust space between columns
+        horizontal_spacing=0.015,  # Adjust space between columns
+        # Create a secondary y-axis for GI data (right side)
+        specs=[[{"secondary_y": True}]*ncols, [{"secondary_y": True}]*ncols]
     )
 
-    # Calculate the global maximum y-value across the entire dataset
+    # Calculate the global maximum y-value across the entire dataset for plotting
     max_y_value = dfS["sum"].max()  # This is the max value across all areas and time points
+
+    # Define a maximum value for GI y-axis
+    if gi.empty==False:
+        gi_max_value = gi["GI"].max()  # Max GI value for global inhibition across all areas
 
     # Loop over all areas (12)
     for i, area in enumerate(list_area):
@@ -423,45 +428,100 @@ def create_interactive_plot(dfS, cond, pres, action_object=True):
                 y=grouped_data["mean_sum"],
                 mode="lines",
                 name=f"Mean {area}",
-                line=dict(width=2),
+                line=dict(width=3, color='blue'),  # Increased thickness and blue color
                 hoverinfo="x+y",  # Only show mean value when hovering
-                showlegend=False  # Remove legend
+                showlegend=True if (i == 0 or i == 6) else False  # Only show legend for i = 0 and i = 6
             ),
             row=row, col=col
         )
 
-        # Set the individual y-axis limits for each subplot based on the global max_y_value
+        # Plot GI data on the second y-axis (right side)
+        if gi.empty==False:
+            gi_data = gi[gi['area'] == area]  # Filter GI data for the current area
+            if not gi_data.empty:
+                fig.add_trace(
+                    go.Scatter(
+                        x=gi_data["stp"],  # Assuming 'stp' is the time or step column in GI data
+                        y=gi_data["GI"],  # Assuming 'GI' is the global inhibition value
+                        mode="lines",
+                        name=f"GI {area}",
+                        line=dict(width=3, dash='dot', color="red"),
+                        hoverinfo="x+y",  # Show GI values when hovering
+                        showlegend=False  # Remove legend for GI plot
+                    ),
+                    row=row, col=col, secondary_y=True  # Use secondary y-axis
+                )
+
+        # Set the individual y-axis limits for each subplot based on the global max_y_value (spike count)
         fig.update_yaxes(
             range=[0, max_y_value * 1.1],  # Set y-limits based on the global max value
             row=row, col=col
         )
-
-        # Add y-axis title only for area 0 and 6
-        if i == 0 or i == 6:
+        
+        if gi.empty==False:
+            # Set secondary y-axis limits for GI (Global Inhibition)
             fig.update_yaxes(
-                title_text="Number of Spikes",
+                range=[0, gi_max_value * 1.1],  # Set y-limits for GI data
+                secondary_y=True,
                 row=row, col=col
             )
+
+        # Set x-axis limits based on the time range
+        fig.update_xaxes(
+            range=[0, 30],  # Set x-limits based on the time range
+            row=row, col=col
+        )
+
+        # Add y-axis title only for area 0 and 6 (Number of Spikes)
+
+            
+
+        # Add secondary y-axis title for GI only for i = 6 and i = 11
+        if i == 5 or i == 11:
+            fig.update_yaxes(
+                title_text="Global Inhibition", color="red",
+                secondary_y=True,
+                showticklabels=True,
+                row=row, col=col
+            )
+        else:
+            fig.update_yaxes(
+                secondary_y=True,
+                showticklabels=False,
+                row=row, col=col
+            )
+            
+        if i == 0 or i == 6:
+            fig.update_yaxes(
+                title_text="Number of Spikes",color="blue",
+                row=row, col=col,
+                secondary_y=False,
+            )
+
 
         # Add x-axis title ("Time-step") only for areas in the second row (i > 5)
         if i > 5:
             fig.update_xaxes(
                 title_text="Time-step",
-                row=row, col=col
+                row=row, col=col,
+                showticklabels=True
+            )
+        else:
+            fig.update_xaxes(
+                showticklabels=False
             )
 
+            
     # Update layout settings for square subplots and reduced space
     fig.update_layout(
         showlegend=False,  # Disable the global legend
         height=500,  # Adjusted for better readability
-        width=1000,  # Ensure figure is wide enough to accommodate subplots
-        #xaxis_title="Time-step",
-        #yaxis_title="Number of Spikes",
+        width=1050,  # Ensure figure is wide enough to accommodate subplots
     )
-
 
     # Return the figure for Gradio to render
     return fig
+
 
 
 if __name__ == "__main__":
